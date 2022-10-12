@@ -49,3 +49,39 @@ so I flip all the ones and zeros and do the search again. This time I get back t
 and one of them is right after the preamble. So I know I have a POCSAG signal.
 
 ## Decoding
+I have 1799 bits and there is no way I am going to try to decode this by hand, 
+but how I am going to all these bits into a useful data.
+I am not the greatest program, 
+but I do have some good knowledge on electronics and data moves through transistor to transistor logic. 
+So, my thought was to run the signal through a shift register tell I found the frame sync code,
+and the closest data model that I could think of that represents a shift register is a link list.
+I could create a list that only can hold 32 bits, and if it fills up pops off the first value.
+Next I will run all the bits through tell I find the FSC and from there I can process the data contained in the frames.
+
+I wrote out the code, and it successfully found the FSC, so it is now on to decoding the frame.
+I pull back up the documentation on POCSAG and read that each frame is broken up into 16 32 bits of data.
+Each block of data can be either an address or a message and the first bit is used to denote this.
+So I add to my link list code to create a list of 32 bits of data after finds the FSC.
+This makes it easy to work with each block of data. 
+The next bit of code is to inspect the first bit and separate the addresses from the messages.
+
+I was going to throw away the address data, but I found out that the address contains data on the format of the message.
+On bit 20 and 21 tells the receiver if the message is just numeric or if it is alpha-numeric. 
+I could just assume that all messages are going to alpha-numeric as I am looking for a flag, 
+but I thought I might just code for it anyway.
+
+Onto decoding bits into letters, and from the documentation it looks like POCSAG uses 7 bit ASCII characters.
+Each block is 32 bits, and the message blocks use some error correcting code to recover a bad bit. 
+This leaves each message with 20 bits for characters. However, seven does not go into 20 very cleanly.
+To solve this the protocol takes the 20 bits from the message and stacks them together to create one large stream.
+This is pretty easy to solve for as I can loop throw each block of data and create one large list of bits.
+
+## ASCII
+I am so close now to having the signal decoded. 
+I have a stream of ones and zeros that contain the message in ASCII.
+I run through the stream of data real and try to convert to characters, but get back garbage.
+I forgot that the data is 7 bit ASCII and Python uses 8 bit ASCII. 
+This is not hard to fix as I can add a zero to the front of each character, however I still have garbage.
+Going back to the documentation it says that each character is big endian.
+I update my code to revers each character and then add the zero at the end,
+and with that I finally have the flag.
