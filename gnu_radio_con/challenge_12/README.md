@@ -58,6 +58,92 @@ and the closest data model that I could think of that represents a shift registe
 I could create a list that only can hold 32 bits, and if it fills up pops off the first value.
 Next I will run all the bits through tell I find the FSC and from there I can process the data contained in the frames.
 
+```python
+class NodeBit(object):
+    def __init__(self, data):
+        self.data = data
+        self.next_node = None
+
+
+class FrameSyncBuffer(object):
+    def __init__(self, fcs):
+        self.frame_sync_code = fcs
+        self.head = None
+        self.tail = None
+        self.len = 0
+        self.batches = []
+        self.record = False
+        self.current_node = self.head
+
+    def __iter__(self):
+        self.current_node = self.head
+        return self
+
+    def __next__(self):
+        if self.current_node is None:
+            raise StopIteration
+        data = self.current_node.data
+        self.current_node = self.current_node.next_node
+        return data
+
+    def list_start(self, node):
+        self.head = node
+        self.tail = node
+
+    def write_buffer(self):
+        buffer = []
+        for bit in self:
+            buffer.append(bit)
+        return buffer
+
+    def clear_buffer(self):
+        self.head = None
+        self.tail = None
+        self.len = 1
+        return None
+
+    def check_fsc(self):
+        buffer = ''.join(self.write_buffer())
+        if buffer == self.frame_sync_code:
+            self.clear_buffer()
+            return True
+        return None
+
+    def create_batch(self):
+        self.batches.append(self.write_buffer())
+        self.clear_buffer()
+        return None
+
+    def buffer_in(self, data):
+        new_node = NodeBit(data)
+        self.len += 1
+        if not self.head:
+            self.list_start(new_node)
+            return None
+        if self.len > 32:
+            if not self.record:
+                if self.check_fsc():
+                    self.record = True
+                    self.list_start(new_node)
+                    return None
+                self.buffer_out(new_node)
+                return None
+            else:
+                self.create_batch() 
+                self.list_start(new_node)
+        self.tail.next_node = new_node
+        self.tail = new_node
+        return None
+
+    def buffer_out(self, new_node):
+        self.head = self.head.next_node
+        self.tail.next_node = new_node
+        self.tail = new_node
+        self.len -= 1
+        return None
+
+```
+
 I wrote out the code, and it successfully found the FSC, so it is now on to decoding the frame.
 I pull back up the documentation on POCSAG and read that each frame is broken up into 16 32 bits of data.
 Each block of data can be either an address or a message and the first bit is used to denote this.
@@ -69,6 +155,22 @@ I was going to throw away the address data, but I found out that the address con
 On bit 20 and 21 tells the receiver if the message is just numeric or if it is alpha-numeric. 
 I could just assume that all messages are going to alpha-numeric as I am looking for a flag, 
 but I thought I might just code for it anyway.
+
+```python
+message = []
+for frame in pocsag.batches:
+    if frame[0] == '0':
+        if ''.join(frame) == FRAME_SYNC_CODE or ''.join(frame) == IDLE_SYNC_CODE:
+            continue
+        address_bits = ''.join(frame[1:19])
+        address = int(address_bits, 2)
+        if ''.join(frame[19:21]) == '11':
+            message_type = 'alpha_numeric'
+        elif ''.join(frame[19:21]) == '00':
+            message_type = 'numeric'
+    else:
+        message.extend(frame[1:21])
+```
 
 Onto decoding bits into letters, and from the documentation it looks like POCSAG uses 7 bit ASCII characters.
 Each block is 32 bits, and the message blocks use some error correcting code to recover a bad bit. 
@@ -85,3 +187,17 @@ This is not hard to fix as I can add a zero to the front of each character, howe
 Going back to the documentation it says that each character is big endian.
 I update my code to revers each character and then add the zero at the end,
 and with that I finally have the flag.
+
+```python
+characters = []
+for index in range(0, len(message), 7):
+    char = message[index:index + 7]
+    char.reverse()
+    characters.append(char)
+
+flag = ''
+for char in characters:
+    word = '0' + ''.join(char)
+    flag = flag + chr(int(word[:8], 2))
+```
+
