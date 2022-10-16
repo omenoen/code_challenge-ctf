@@ -24,3 +24,5 @@ The first is you can enter it in by hand using the frequency bar at the top, or
 You can just click on what you are interested in, and it will focus onto that signal.
 After that you can change the demodulation around tell you start to hear a voice,
 and after that you just need to wait for the flag.
+
+![gqrx_preview](gqrx_preview.png)
