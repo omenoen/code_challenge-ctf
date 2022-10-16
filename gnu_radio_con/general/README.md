@@ -37,3 +37,11 @@ To me it looks the signal is dancing around much like a flame does on a candle.
 So I set the demodulation to narrowband FM and waited for the flag to be said. 
 
 ![challenge1](challenge1.png)
+
+## Challenge 2
+This one has a lot of similarities to Challenge 1.
+Except there appears to be three signals instead of just the one, 
+but if you look close it just looks like three FM signals.
+So, I focused onto that signal and used wideband FM demodulator, and waited for the flag.
+
+![challenge2](challenge2.png)
