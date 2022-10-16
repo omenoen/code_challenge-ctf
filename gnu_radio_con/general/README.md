@@ -26,3 +26,14 @@ After that you can change the demodulation around tell you start to hear a voice
 and after that you just need to wait for the flag.
 
 ![gqrx_preview](gqrx_preview.png)
+
+## Challenge 1
+This challenge was quite easy. 
+If you pay attention to the frequency chart, or the waterfall chart you can spot the FM modulation characteristics.
+If you are not familiar with FM modulation the best way to spot it is on a waterfall chart.
+As the signal moves down it looks like sound waves.
+The other way is in the frequency plot.
+To me it looks the signal is dancing around much like a flame does on a candle.
+So I set the demodulation to narrowband FM and waited for the flag to be said. 
+
+![challenge1](challenge1.png)
